@@ -5,37 +5,40 @@ import { Event, machine, State } from "./Machine";
 
 const World = () => {
   const [current, send] = useMachine(machine, { devTools: true });
-  useEffect(() => {
-    inspect({
-      // url: "https://statecharts.io/inspect",
-      iframe: false,
-    });
-  }, []);
 
   if (current.matches(State.inactive)) {
     return (
-      <div className="container">
+      <div className="container" data-testid={"inactive"}>
         <p>{`Context: ${JSON.stringify(current.context)}`}</p>
         <p>Inactive state</p>
         <input
+          data-testid={"changeWorld"}
           type="text"
           onChange={({ target: { value } }) =>
             send(Event.changeWorld, { world: value })
           }
           placeholder="changeWorld"
         />
-        <button type="submit" onClick={() => send(Event.submit)}>
+        <button
+          data-testid={"submit"}
+          type="submit"
+          onClick={() => send(Event.submit)}
+        >
           Submit
         </button>
       </div>
     );
   }
-  if (current.matches(State.worldInvalid)) {
+  if (current.matches(State.worldInvalidInput)) {
     return (
       <div className="container">
-        <p>World Invalid state</p>
+        <p data-testid={"invalidInput"}>World Invalid state</p>
         <p>Please try again</p>
-        <button type="button" onClick={() => send(Event.retry)}>
+        <button
+          data-testid={"retry"}
+          type="button"
+          onClick={() => send(Event.retry)}
+        >
           Retry
         </button>
       </div>
@@ -43,17 +46,21 @@ const World = () => {
   }
   if (current.matches({ [State.worldSubmitted]: [State.fetchingWorld] })) {
     return (
-      <div className="container">
+      <div className="container" data-testid="fetching">
         <p>World Submitted: Fetching world...</p>
       </div>
     );
   }
   if (current.matches({ [State.worldSubmitted]: [State.worldInvalid] })) {
     return (
-      <div className="container">
-        <p>World Submitted: Invalid state</p>
+      <div className="container" data-testid="fetched">
+        <p data-testid="invalid">World Submitted: Invalid state</p>
         <p>Please try again</p>
-        <button type="button" onClick={() => send(Event.retry)}>
+        <button
+          data-testid={"retry"}
+          type="button"
+          onClick={() => send(Event.retry)}
+        >
           Retry
         </button>
       </div>
@@ -61,9 +68,13 @@ const World = () => {
   }
   if (current.matches({ [State.worldSubmitted]: [State.worldValid] })) {
     return (
-      <div className="container">
-        <p>Flat World valid</p>
-        <button type="button" onClick={() => send(Event.finish)}>
+      <div className="container" data-testid="fetched">
+        <p data-testid="valid">Flat World valid</p>
+        <button
+          data-testid={"finish"}
+          type="button"
+          onClick={() => send(Event.finish)}
+        >
           Finish
         </button>
       </div>
@@ -71,7 +82,7 @@ const World = () => {
   }
   if (current.matches({ [State.worldSubmitted]: [State.finished] })) {
     return (
-      <div className="container">
+      <div className="container" data-testid="finished">
         <p>Finished</p>
       </div>
     );

@@ -1,4 +1,6 @@
 import { assign, Machine } from "xstate";
+import { assert } from "chai";
+import { waitFor } from "@testing-library/dom";
 
 type Context = {
   world: string;
@@ -29,6 +31,7 @@ type Events =
 export enum State {
   inactive = "inactive",
   worldSubmitted = "worldSubmitted",
+  worldInvalidInput = "worldInvalidInput",
   worldInvalid = "worldInvalid",
   fetchingWorld = "fetchingWorld",
   worldValid = "worldValid",
@@ -46,7 +49,7 @@ type StateSchema = {
         [State.finished]: {};
       };
     };
-    [State.worldInvalid]: {};
+    [State.worldInvalidInput]: {};
   };
 };
 
@@ -81,7 +84,7 @@ const handleChangeWorld = assign((context: Context, event: Events) => {
 });
 
 const validWorld = (context: Context, event: Events) => {
-  if (context.world.length > 3) {
+  if (context?.world?.length > 3) {
     return true;
   }
   return false;
@@ -95,7 +98,6 @@ const fetchWorld = (context: Context) =>
     .then((data) => {
       console.log({ data, context });
       if (data.world === context.world) {
-        console.log("matches");
         return true;
       }
       throw new Error("world not valid");
@@ -120,16 +122,26 @@ export const machine = Machine<Context, StateSchema, Events>(
               cond: Guard.validWorld,
             },
             {
-              target: State.worldInvalid,
+              target: State.worldInvalidInput,
             },
           ],
         },
+        meta: {
+          test: ({ getByTestId }) => {
+            assert.ok(getByTestId("inactive"));
+          },
+        },
       },
-      [State.worldInvalid]: {
+      [State.worldInvalidInput]: {
         on: {
           [Event.retry]: {
             target: State.inactive,
             actions: [Action.resetWorld],
+          },
+        },
+        meta: {
+          test: ({ getByTestId }) => {
+            assert.ok(getByTestId("invalidInput"));
           },
         },
       },
@@ -146,18 +158,41 @@ export const machine = Machine<Context, StateSchema, Events>(
             invoke: {
               src: Service.fetchWorld,
               onDone: State.worldValid,
-              onError: State.worldInvalid,
+              onError: `${State.worldInvalid}`,
             },
+            // meta: {
+            //   test: ({ getByTestId }) => {
+            //     assert.ok(getByTestId("fetching"));
+            //   },
+            // },
           },
-          [State.worldInvalid]: {},
+          [State.worldInvalid]: {
+            // meta: {
+            //   test: ({ getByTestId }) => {
+            //     assert.ok(getByTestId("invalid"));
+            //   },
+            // },
+          },
           [State.worldValid]: {
             on: {
               [Event.finish]: {
                 target: State.finished,
               },
             },
+            // meta: {
+            //   test: ({ getByTestId }) => {
+            //     assert.ok(getByTestId("valid"));
+            //   },
+            // },
           },
-          [State.finished]: {},
+          [State.finished]: {
+            type: "final",
+            // meta: {
+            //   test: ({ getByTestId }) => {
+            //     assert.ok(getByTestId("finished"));
+            //   },
+            // },
+          },
         },
       },
     },
